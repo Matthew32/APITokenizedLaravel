@@ -7,6 +7,7 @@ use App\Repositories\UserRepository;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Validator;
 
 class AuthController extends Controller
 {
@@ -14,6 +15,7 @@ class AuthController extends Controller
 
     public function __construct()
     {
+        $this->middleware('jwt', ['except' => ['login', 'register']]);
         $this->userRepository = new UserRepository();
     }
 
@@ -21,12 +23,16 @@ class AuthController extends Controller
      * Register new user
      * @param Request $request
      * @return void it will return the new token to the registered user
-     * @throws ValidationException
      */
     public function register(Request $request)
     {
-        $this->validate($request, [
-            'email' => 'email:rfc,dns',
+        $result = null;
+
+        $validator = Validator::make($request->all(), [
+            'email' => [
+                'required',
+                'email:rfc,dns'
+            ],
             'username' => [
                 'required',
                 'string',
@@ -40,17 +46,17 @@ class AuthController extends Controller
             ]
         ]);
 
-        $user = $this->userRepository->save($request->email, $request->username, $request->password);
+        if (!$validator->fails()) {
+            $userRegistered = $this->userRepository->save($request->email, $request->username, $request->password);
 
+            //TODO:Send email to the user to verify his email
 
-        //TODO:Send email to the user to verify his email
-        $result = null;
-        if ($user) {
-            $token = auth()->login($user);
-            $result = $this->respondWithToken($token);
-        } else {
-            $result = response()->json(['error' => 'Error on saving User'], 401);
-        }
+            $result = $userRegistered ?
+                response()->json('User Created', 200) :
+                response()->json(['error' => 'Error saving User'], 401);
+        } else
+            $result = response()->json($validator->messages(), 200);
+
         return $result;
     }
 
@@ -62,21 +68,54 @@ class AuthController extends Controller
      */
     public function login(Request $request)
     {
-
-        $this->validate($request, ['email' => 'required|email', 'password' => 'required']);
+        $validator = Validator::make($request->all(), ['email' => 'required|email', 'password' => 'required']);
 
         $credentials = request(['email', 'password']);
 
         //TODO:check verified email or not
+        if (!$validator->fails()) {
 
-        if (!$token = auth()->attempt($credentials)) {
-            $result = response()->json(['error' => 'Unauthorized'], 401);
+            if (!$token = auth()->attempt($credentials)) {
+                $result = response()->json(['error' => 'Unauthorized'], 401);
+            } else
+                $result = $this->respondWithToken($token);
         } else
-            $result = $this->respondWithToken($token);
-
+            $result = response()->json($validator->messages(), 200);
 
         return $result;
     }
+
+    /**
+     * Refresh a token.
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function refresh()
+    {
+        return $this->respondWithToken(auth()->refresh());
+    }
+
+    public function me()
+    {
+        return response()->json(auth()->user());
+    }
+
+    public function payload()
+    {
+        return response()->json(auth()->payload());
+    }
+
+    /**
+     * Log the user out (Invalidate the token).
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function logout()
+    {
+        auth()->logout();
+        return response()->json(['message' => 'Successfully logged out']);
+    }
+
 
     protected function respondWithToken($token)
     {

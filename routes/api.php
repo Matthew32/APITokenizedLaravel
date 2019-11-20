@@ -13,12 +13,23 @@ use Illuminate\Http\Request;
 |
 */
 
-Route::post('/auth/register', 'AuthController@register');
+Route::group([
+    'prefix' => 'auth',
+], function () {
+    Route::post('register', 'AuthController@register');
 
-Route::post('/auth/login', 'AuthController@login');
+    Route::post('login', 'AuthController@login');
 
-Route::group(['middleware' => ['jwt.verify']], function() {
-    Route::resource('user', 'UserController');
+    Route::post('refresh', 'AuthController@refresh');
+
+    Route::post('me', 'AuthController@me');
+});
+
+Route::group(['middleware' => ['jwt']], function () {
+    Route::put('user', 'UserController@update');
+    Route::delete('user', 'UserController@destroy');
+    Route::get('user/picture', 'UserController@picture');
+    Route::get('user', 'UserController@index');
 });
 
 
