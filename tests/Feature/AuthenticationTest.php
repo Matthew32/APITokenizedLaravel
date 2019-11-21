@@ -8,7 +8,7 @@ use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
-class AuthenticationTest extends TestCase
+class AuthenticationTest  extends TestCase
 {
     public function setUp(): void
     {
@@ -26,7 +26,7 @@ class AuthenticationTest extends TestCase
     protected function tearDown(): void
     {
         parent::tearDown();
-        //DB::rollBack();
+        DB::rollBack();
 
     }
 
@@ -35,11 +35,12 @@ class AuthenticationTest extends TestCase
     public function it_will_register_a_user()
     {
         $response = $this->post('api/auth/register', [
-            'email' => 'test2@test.com',
+            'email' => 'test23@test.com',
             'username' => 'usertest',
             'password' => 'aAD1234.@',
             'password_confirmation' => 'aAD1234.@'
         ]);
+
 
         $response->assertJsonStructure([
             'access_token',

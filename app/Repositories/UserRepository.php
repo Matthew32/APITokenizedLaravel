@@ -47,10 +47,8 @@ class UserRepository implements UserRepositoryInterface
 
             $result = $user->save();
         } catch (\Exception $e) {
-            dd($e->getMessage());
             Log::error($e->getMessage());
         }
-        //dd([$email,$username,$password]);
         return $result;
     }
 
@@ -68,52 +66,57 @@ class UserRepository implements UserRepositoryInterface
 
     public function createPicture(int $id)
     {
-        $directory = "pic2" . DIRECTORY_SEPARATOR . $id . ".jpg";
-        if(!is_dir("pic2")){
-            mkdir("pic2");
-        }
-        $width = 125;
-        $height = 250;
-        // Create a200 x200 canvas image
-
-        $canvas = imagecreatetruecolor($width, $height);
-
-
-        // Allocate color for rectangle
-        $colors = [
-            0 => imagecolorallocate($canvas, 20, 105, 180),
-            1 => imagecolorallocate($canvas, 255, 20, 180),
-            3 => imagecolorallocate($canvas, 30, 20, 180)];
-
-
-        // Draw rectangle with its color
-
-        $y = 0;
-        for ($j = 0; $j < ($height / 2); $j++) {
-            for ($i = 0; $i < $width; $i++) {
-                $x = $i == 0 ? 0 : $i + 50;
-
-                imagefilledrectangle($canvas, $x, $y, 50, 50, imagecolorallocate($canvas, $i * $id, $i * $id, $i / $id));
+        $result = null;
+        try {
+            $directory = "pic2" . DIRECTORY_SEPARATOR . $id . ".jpg";
+            if (!is_dir("pic2")) {
+                mkdir("pic2");
             }
-            $y = $y + 50;
+            $width = 125;
+            $height = 250;
+            // Create a200 x200 canvas image
+
+            $canvas = imagecreatetruecolor($width, $height);
+
+
+            // Allocate color for rectangle
+            $colors = [
+                0 => imagecolorallocate($canvas, 20, 105, 180),
+                1 => imagecolorallocate($canvas, 255, 20, 180),
+                3 => imagecolorallocate($canvas, 30, 20, 180)];
+
+
+            // Draw rectangle with its color
+
+            $y = 0;
+            for ($j = 0; $j < ($height / 2); $j++) {
+                for ($i = 0; $i < $width; $i++) {
+                    $x = $i == 0 ? 0 : $i + 50;
+
+                    imagefilledrectangle($canvas, $x, $y, 50, 50, imagecolorallocate($canvas, $i * $id, $i * $id, $i / $id));
+                }
+                $y = $y + 50;
+            }
+
+            imagejpeg($canvas, $directory, 75);
+
+            imagedestroy($canvas);
+            $fliped = imagecreatefromjpeg($directory);
+            imageflip($fliped, IMG_FLIP_HORIZONTAL);
+
+            $image = imagecreatefromjpeg($directory);
+
+            $ImageTotal = imagecreatetruecolor(250, 250);
+
+
+            imagecopy($ImageTotal, $image, 0, 0, 0, 0, 125, 250);
+
+            imagecopy($ImageTotal, $fliped, 125, 0, 0, 0, 125, 250);
+            imagejpeg($ImageTotal, $directory, 75);
+            $result = $directory;
+        } catch (\Exception $e) {
+            Log::error($e->getMessage());
         }
-
-        imagejpeg($canvas, $directory, 75);
-
-        imagedestroy($canvas);
-        $fliped = imagecreatefromjpeg($directory);
-        imageflip($fliped, IMG_FLIP_HORIZONTAL);
-
-        $image = imagecreatefromjpeg($directory);
-
-        $ImageTotal = imagecreatetruecolor(250, 250);
-
-
-        imagecopy($ImageTotal, $image, 0, 0, 0, 0, 125, 250);
-
-        imagecopy($ImageTotal, $fliped, 125, 0, 0, 0, 125, 250);
-        imagejpeg($ImageTotal, $directory, 75);
-
-        return $directory;
+        return $result;
     }
 }
