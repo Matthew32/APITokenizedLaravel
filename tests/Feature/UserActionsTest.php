@@ -3,32 +3,33 @@
 namespace Tests\Feature;
 
 use App\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Foundation\Testing\WithFaker;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
 class UserActionsTest extends TestCase
 {
+    use DatabaseTransactions;
 
-    protected function getToken($user = null): string
+
+    protected $userMock;
+
+    /** Get token from the first user (the pojo user for testing)
+     * @return string
+     */
+    protected function getToken(): string
     {
-
-        if (!isset($user))
-            $user = factory(User::class)->create(['password' => bcrypt('foo')]);
-
-        return JWTAuth::fromUser($user);
-
+        return JWTAuth::fromUser(User::first());
     }
 
     /**
-     * A  test get User info.
+     * Test index
      *
      * @return void
      */
     public function testIndex()
     {
+
         $token = $this->getToken();
         $response = $this->get('/api/user', ['Authorization' => "Bearer $token"]);
 
@@ -44,43 +45,33 @@ class UserActionsTest extends TestCase
     }
 
     /**
-     * A basic feature test example.
+     * Test Error Index
      *
      * @return void
      */
     public function testErrorIndex()
     {
-        $token = $this->getToken();
-        $response = $this->get('/api/user', ['Authorization' => "Bearer "]);
+        $response = $this->get('/api/user', ['Authorization' => "Bearer test"]);
 
         $response->assertStatus(400);
 
     }
 
     /**
-     * A  test update.
+     * Test update
      *
      * @return void
      */
     public function testUpdate()
     {
-        DB::beginTransaction();
-        $user = new User([
-            'email' => 'test@email.com',
-            'username' => 'Username',
-            'password' => '123456'
-        ]);
 
-        $user->save();
-
-        $token = $this->getToken($user);
+        $token = $this->getToken();
 
         $response = $this->put('/api/user', [
             'email' => 'test23@test.com',
-            // 'username' => 'usertest',
             'password' => 'aAD1234.@',
             'password_confirmation' => 'aAD1234.@',
-            'password_old' => '123456'
+            'password_old' => 'foo'
         ],
             ['Authorization' => "Bearer $token"]
         );
@@ -89,21 +80,20 @@ class UserActionsTest extends TestCase
     }
 
     /**
-     * A  test Error update old password.
+     * Test Error if the user put the old password
      *
      * @return void
      */
     public function testErrorOldPasswordUpdate()
     {
 
-        $token = $this->getToken(factory(User::class)->create(['password' => bcrypt('foo')]));
+        $token = $this->getToken();
 
         $response = $this->put('/api/user', [
             'email' => 'test23@test.com',
-            // 'username' => 'usertest',
             'password' => 'aAD1234.@',
             'password_confirmation' => 'aAD1234.@',
-            'password_old' => 'foo'
+            'password_old' => 'test'
         ],
             ['Authorization' => "Bearer $token"]
         );
@@ -112,14 +102,12 @@ class UserActionsTest extends TestCase
     }
 
     /**
-     * A  test Error update old password.
+     * Test Error Update
      *
      * @return void
      */
     public function testErrorUpdate()
     {
-
-        $token = $this->getToken(factory(User::class)->create(['password' => bcrypt('foo')]));
 
         $response = $this->put('/api/user', [
                 'password_old' => 'foo'
@@ -130,7 +118,7 @@ class UserActionsTest extends TestCase
     }
 
     /**
-     * A  test destroy.
+     * Test Destroy
      *
      * @return void
      */
@@ -148,7 +136,20 @@ class UserActionsTest extends TestCase
     }
 
     /**
-     * A  test picture.
+     * Test Error Destroy
+     *
+     * @return void
+     */
+    public function testErrorDestroy()
+    {
+
+        $response = $this->delete('/api/user');
+
+        $response->assertStatus(400);
+    }
+
+    /**
+     * Test picture
      *
      * @return void
      */
@@ -163,33 +164,35 @@ class UserActionsTest extends TestCase
         $response->assertStatus(200);
     }
 
+
     /**
-     * A  test picture.
+     * Test Error on picture.
      *
      * @return void
      */
     public function testErrorPicture()
     {
 
-        $response = $this->get('/api/user/picture'//,
-        );
+        $response = $this->get('/api/user/picture');
 
         $response->assertStatus(400);
     }
 
     /**
-     * A  test destroy.
+     * Test avatar site.
      *
      * @return void
      */
-    public function testErrorDestroy()
+    public function testAvatarSite()
     {
         $token = $this->getToken();
 
-        $response = $this->delete('/api/user', [
-            ]
+        //then read the avatar
+        $response = $this->get('/api/user/avatar',
+            ['Authorization' => "Bearer $token"]
         );
-
-        $response->assertStatus(400);
+        $response->assertStatus(200);
     }
+
+
 }

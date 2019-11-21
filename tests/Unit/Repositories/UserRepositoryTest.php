@@ -2,30 +2,37 @@
 
 namespace Tests\Unit;
 
+use App\Repositories\Interfaces\UserRepositoryInterface;
 use App\Repositories\UserRepository;
 use App\User;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
+use Mockery;
 use Tests\TestCase;
 
 class UserRepositoryTest extends TestCase
 {
+    use DatabaseTransactions;
 
-    private $userRepository;
+    /**
+     * Mocked version of the model.
+     */
+    protected $userMock;
 
-    protected function setUp(): void
+    public function setUp(): void
     {
         parent::setUp();
-        DB::beginTransaction();
 
-        $this->userRepository = new UserRepository();
-
+        $this->userMock = Mockery::mock('User');
+        $this->userMock->id = 1;
     }
+
     protected function tearDown(): void
     {
         parent::tearDown();
-        //DB::rollBack();
-
+        Mockery::close();
     }
 
 
@@ -36,8 +43,11 @@ class UserRepositoryTest extends TestCase
      */
     public function testSave()
     {
+        $this->userMock->shouldReceive('save')->with("test@test.com", "test", "test")->andReturn('User');
 
-        $this->assertNotNull($this->userRepository->save("test@test.com", "test", "test"));
+        $userRepository = App::make(UserRepository::class, array($this->userMock));
+
+        $this->assertNotNull($userRepository->save("test2@test.com", "test", "test"));
     }
 
     /**
@@ -48,8 +58,11 @@ class UserRepositoryTest extends TestCase
     public function testErrorSave()
     {
 
+        $this->userMock->shouldReceive('save')->with("", "test", "test")->andReturn('null');
 
-        $this->assertNull($this->userRepository->save("", "testpass", "test"));
+        $userRepository = App::make(UserRepository::class, array($this->userMock));
+
+        $this->assertNull($userRepository->save("", "testpass", "test"));
 
     }
 
@@ -61,13 +74,12 @@ class UserRepositoryTest extends TestCase
     public function testUpdate()
     {
 
-        $user = new User([
-            'email' => 'test@email.com',
-            'username' => 'Username',
-            'password' => '123456'
-        ]);
-        $user->save();
-        $this->assertNotNull($this->userRepository->update($user->id, array("username" => "testUsername")));
+        $updateTest = array("username" => "testUsername");
+        $this->userMock->shouldReceive('update')->with($this->userMock->id, $updateTest)->andReturn('User');
+
+        $userRepository = App::make(UserRepository::class, array($this->userMock));
+
+        $this->assertNotNull($userRepository->update($this->userMock->id, $updateTest));
     }
 
     /**
@@ -79,57 +91,61 @@ class UserRepositoryTest extends TestCase
     {
 
 
-        $this->assertNull($this->userRepository->update(-1, array("username" => "testUsername")));
+        $updateTest = array("username" => "testUsername");
+        $this->userMock->shouldReceive('update')->with(-1, $updateTest)->andReturn('null');
+
+        $userRepository = App::make(UserRepository::class, array($this->userMock));
+
+        $this->assertNull($userRepository->update(-1, $updateTest));
     }
 
     /**
-     * Test update
+     * Test delete
      *
      * @return void
      */
-    public function testDestroy()
+    public function testDelete()
     {
 
-        $user = new User([
-            'email' => 'test@email.com',
-            'username' => 'Username',
-            'password' => '123456'
-        ]);
-        $user->save();
-        $this->assertTrue($this->userRepository->delete($user->id));
+        $this->userMock->shouldReceive('delete')->with($this->userMock->id)->andReturn('bool');
+
+        $userRepository = App::make(UserRepository::class, array($this->userMock));
+
+        $this->assertTrue($userRepository->delete($this->userMock->id));
     }
 
     /**
-     * Test update
+     * Test error delete
      *
      * @return void
      */
-    public function testErrorDestroy()
+    public function testErrorDelete()
     {
 
 
-        $this->assertFalse($this->userRepository->delete(-1));
+        $this->userMock->shouldReceive('delete')->with(-1)->andReturn('bool');
+
+        $userRepository = App::make(UserRepository::class, array($this->userMock));
+
+        $this->assertFalse($userRepository->delete(-1));
     }
 
     /**
-     * Test update
+     * Test create picture
      *
      * @return void
      */
     public function testCreatePicture()
     {
 
-        $user = new User([
-            'email' => 'test@email.com',
-            'username' => 'Username',
-            'password' => '123456'
-        ]);
-        $user->save();
-        $this->assertIsString($this->userRepository->createPicture($user->id));
+
+        $userRepository = App::make(UserRepository::class, array($this->userMock));
+
+        $this->assertEquals("1", $userRepository->createPicture($this->userMock->id));
     }
 
     /**
-     * Test update
+     * Test  error create picture
      *
      * @return void
      */
@@ -137,6 +153,10 @@ class UserRepositoryTest extends TestCase
     {
 
         $this->expectException(\TypeError::class);
-        $this->userRepository->createPicture(null);
+
+
+        $userRepository = App::make(UserRepository::class, array($this->userMock));
+
+        $this->assertNull($userRepository->createPicture(null));
     }
 }

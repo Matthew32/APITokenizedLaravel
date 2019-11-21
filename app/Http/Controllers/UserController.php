@@ -3,9 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Abstracts\Controller;
-use App\Repositories\UserRepository;
+use App\Repositories\Interfaces\UserRepositoryInterface;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Response;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Validator;
 
@@ -13,9 +16,9 @@ class UserController extends Controller
 {
     private $userRepository;
 
-    public function __construct()
+    public function __construct(UserRepositoryInterface $userRepo)
     {
-        $this->userRepository = new UserRepository();
+        $this->userRepository = $userRepo;
     }
 
     /**
@@ -40,7 +43,7 @@ class UserController extends Controller
         $result = null;
         $validator = Validator::make($request->all(), [
             'email' =>
-                'email:rfc,dns',
+                'email',
             'username' => [
                 'string',
                 'min:6'
@@ -48,7 +51,6 @@ class UserController extends Controller
             'password' => [
                 'string',
                 'min:6',
-                'confirmed',
                 'regex:/^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{6,}$/',
             ]
         ]);
@@ -63,7 +65,9 @@ class UserController extends Controller
                 $toSave = array();
                 $attributes = ["username", "email", "password"];
                 foreach ($attributes as $value)
-                    $toSave[$value] = $request->$value;
+                    if (isset($request->$value))
+                        $toSave[$value] = $request->$value;
+
 
                 $result = $this->userRepository->update(auth()->id(), $toSave) ?
                     response()->json("User Updated", 200) :
@@ -99,14 +103,48 @@ class UserController extends Controller
         return $result;
     }
 
+    /**
+     * Create user picture
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function picture()
     {
-
-
-        if (!file_exists("pic2" . DIRECTORY_SEPARATOR . auth()->id() . ".jpg"))
+        //create avatar if doesn't exist
+        if (!Storage::exists('public' . DIRECTORY_SEPARATOR . 'avatars' . DIRECTORY_SEPARATOR . auth()->id() . ".jpg"))
             $this->userRepository->createPicture(auth()->id());
 
-        return response()->json($url = URL::to("/") . '/pic2/' . auth()->id() . '.jpg', 200);
+        return response()->json($url = URL::to("/") . '/api/user/avatar', 200);
+    }
+
+    /**
+     * Show user avatar
+     * @return \Illuminate\Http\Response
+     */
+    public function avatar()
+    {
+        //if the avatar is not create make it
+        if (!Storage::exists('public' . DIRECTORY_SEPARATOR . 'avatars' . DIRECTORY_SEPARATOR . auth()->id() . ".jpg"))
+            $this->userRepository->createPicture(auth()->id());
+
+        $path = storage_path(
+            'app' . DIRECTORY_SEPARATOR .
+            'public' . DIRECTORY_SEPARATOR .
+            'avatars' . DIRECTORY_SEPARATOR .
+            auth()->id() . ".jpg");
+
+        //just in case the avatar is not created
+        if (!File::exists($path)) {
+            abort(404);
+        }
+
+        //show avatar
+        $file = File::get($path);
+        $type = File::mimeType($path);
+
+        $response = Response::make($file, 200);
+        $response->header("Content-Type", $type);
+
+        return $response;
     }
 
 }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Abstracts\Controller;
+use App\Repositories\Interfaces\UserRepositoryInterface;
 use App\Repositories\UserRepository;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -13,10 +14,10 @@ class AuthController extends Controller
 {
     private $userRepository;
 
-    public function __construct()
+    public function __construct(UserRepositoryInterface $userRepo)
     {
         $this->middleware('jwt', ['except' => ['login', 'register']]);
-        $this->userRepository = new UserRepository();
+        $this->userRepository = $userRepo;
     }
 
     /**
@@ -31,17 +32,17 @@ class AuthController extends Controller
         $validator = Validator::make($request->all(), [
             'email' => [
                 'required',
-                'email:rfc,dns'
+                'email'
             ],
             'username' => [
                 'required',
                 'string',
                 'min:6'
             ],
-            'password' => ['required',
+            'password' => [
+                'required',
                 'string',
                 'min:6',
-                'confirmed',
                 'regex:/^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{6,}$/',
             ]
         ]);
