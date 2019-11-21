@@ -6,6 +6,7 @@ use App\Http\Controllers\Abstracts\Controller;
 use App\Repositories\UserRepository;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Validator;
 
 class UserController extends Controller
@@ -102,14 +103,10 @@ class UserController extends Controller
     {
 
 
-        header('Content-type: image/png');
+        if (!file_exists("pic2" . DIRECTORY_SEPARATOR . auth()->id() . ".jpg"))
+            $this->userRepository->createPicture(auth()->id());
 
-        imagejpeg(imagecreatefromjpeg(!file_exists("pic2" . DIRECTORY_SEPARATOR . auth()->id() . ".jpg")
-            ?
-            $this->userRepository->createPicture(auth()->id()) :
-            "pic2" . DIRECTORY_SEPARATOR . auth()->id() . ".jpg"));
-
-        exit;
+        return response()->json($url = URL::to("/") . '/pic2/' . auth()->id() . '.jpg', 200);
     }
 
 }

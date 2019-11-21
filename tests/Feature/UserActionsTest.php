@@ -148,6 +148,38 @@ class UserActionsTest extends TestCase
     }
 
     /**
+     * A  test picture.
+     *
+     * @return void
+     */
+    public function testPicture()
+    {
+        $token = $this->getToken();
+
+        $response = $this->get('/api/user/picture',
+            ['Authorization' => "Bearer $token"]
+        );
+
+        $response->assertStatus(200);
+    }
+
+    /**
+     * A  test picture.
+     *
+     * @return void
+     */
+    public function testErrorPicture()
+    {
+        $token = $this->getToken();
+
+        $response = $this->get('/api/user/picture'//,
+        // ['Authorization' => "Bearer $token"]
+        );
+
+        $response->assertStatus(400);
+    }
+
+    /**
      * A  test destroy.
      *
      * @return void
