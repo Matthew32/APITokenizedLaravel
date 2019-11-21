@@ -170,10 +170,8 @@ class UserActionsTest extends TestCase
      */
     public function testErrorPicture()
     {
-        $token = $this->getToken();
 
         $response = $this->get('/api/user/picture'//,
-        // ['Authorization' => "Bearer $token"]
         );
 
         $response->assertStatus(400);
